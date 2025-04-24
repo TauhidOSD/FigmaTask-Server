@@ -1,47 +1,53 @@
-// server.js
 const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
 const Stripe = require('stripe');
-
-dotenv.config();
+const cors = require('cors');
 
 const app = express();
-const port = 5550;
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_51RFYhnQh32oi3G5MnavJ9sd75oONjB8GrsUMMPJd6xURrtYllLRBbJLYyQ2CZF45rx0hVpDWrJCv7EozqT7DXZDz00zRg0FVQI', {
+  apiVersion: '2023-10-16',
+});
 
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-
-app.use(cors());
+// Middleware
 app.use(express.json());
+app.use(cors({
+  origin: 'http://localhost:5173', // Allow requests from Vite frontend
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+}));
 
-// Create payment intent
-app.post('/api/create-payment-intent', async (req, res) => {
-  const { amount } = req.body;
-  console.log('Received amount:', amount);
-  console.log('Request body:', req.body);
-
-  if (!amount) {
-    return res.status(400).json({ error: 'Amount is required' });
-  }
-
+// Route to create Stripe Checkout session
+app.post('/api/create-checkout-session', async (req, res) => {
+  console.log('Received request to create checkout session:', req.body);
   try {
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: 'usd',
+    const { amount, currency, description } = req.body;
+
+    const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: currency,
+            product_data: {
+              name: description,
+            },
+            unit_amount: amount,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${req.headers.origin}/stripePayment`,
     });
 
-    console.log('Payment Intent created:', paymentIntent);
-
-    res.send({
-      clientSecret: paymentIntent.client_secret,
-    });
+    res.status(200).json({ id: session.id });
   } catch (error) {
-    console.error('Error creating payment intent:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error);
+    res.status(500).json({ error: { message: error.message } });
   }
 });
 
-app.listen(port, () => {
-  console.log(`Stripe server running on http://localhost:${port}`);
+// Start the server
+const PORT = process.env.PORT || 5550;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
