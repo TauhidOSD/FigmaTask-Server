@@ -10,7 +10,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-06-
 app.use(express.json());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "https://stripe-pk.cloudvenus.net",
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"],
   })
