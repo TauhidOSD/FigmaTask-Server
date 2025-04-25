@@ -10,7 +10,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-06-
 app.use(express.json());
 app.use(
   cors({
-    origin: "https://stripe-pk.cloudvenus.net",
+    origin: "https://younitech.nl",
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"],
   })
