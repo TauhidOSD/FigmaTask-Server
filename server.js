@@ -95,9 +95,6 @@ app.get("/api/check-payment-status/:sessionId", async (req, res) => {
 
 
 
-
-
-
 // Start server
 const PORT = process.env.PORT || 5550;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
