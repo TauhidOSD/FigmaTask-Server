@@ -16,6 +16,51 @@ app.use(
     allowedHeaders: ["Content-Type"],
   })
 );
+
+
+
+
+// // // Forms value and admin login
+
+// // //shakibhasan1070
+// // //FovSrV62QKHdbWUm
+
+
+// const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
+
+// // Hardcoded admin credentials
+// const ADMIN = {
+//   email: process.env.ADMIN_EMAIL || 'admin@example.com',
+//   password: process.env.ADMIN_PASSWORD || 'admin123'
+// };
+
+
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const uri = "mongodb+srv://shakibhasan1070:FovSrV62QKHdbWUm@cluster0.cjeh8kh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
+
+async function run() {
+  try {
+    // Connect the client to the server	(optional starting in v4.7)
+    await client.connect();
+
+    const database = client.db("userDB");
+    const usersCollection = database.collection("users");
+    const formsCollection = database.collection("forms");
+    const paymentCollection = database.collection("payment");
+    const maatwerkCollection = database.collection("maatwerk");
+    const customCollection = database.collection("custom");
+
+
+
 app.use("/webhook", express.raw({ type: "application/json" }));
 
 // Health check
@@ -24,9 +69,14 @@ app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
 // Create checkout session
 app.post("/api/create-checkout-session", async (req, res) => {
   try {
-    //  console.log(req.body);
-
     const { productData, currency, userData, productId, oneTimePrice } = req.body;
+    const price = (productData?.price / 100) || 0;
+    const userDataWithOneTimePrice = {
+      ...userData, oneTimePrice,price}
+    // store user data in database
+    const result = await paymentCollection.insertOne(userDataWithOneTimePrice);
+    console.log("User data stored:", result);
+
 
     if (!productData?.name || !productData?.price) {
       return res.status(400).json({ error: "Missing product information" });
@@ -76,7 +126,7 @@ app.post("/api/create-checkout-session", async (req, res) => {
       },
     });
 
-    console.log(req.body,oneTimePrice);
+  
 
     res.json({ id: session.id, url: session.url });
   } catch (error) {
@@ -117,46 +167,6 @@ app.get("/api/check-payment-status/:sessionId", async (req, res) => {
 
 
 
-
-// // // Forms value and admin login
-
-// // //shakibhasan1070
-// // //FovSrV62QKHdbWUm
-
-
-const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
-
-// Hardcoded admin credentials
-const ADMIN = {
-  email: process.env.ADMIN_EMAIL || 'admin@example.com',
-  password: process.env.ADMIN_PASSWORD || 'admin123'
-};
-
-
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const uri = "mongodb+srv://shakibhasan1070:FovSrV62QKHdbWUm@cluster0.cjeh8kh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
-
-async function run() {
-  try {
-    // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-
-    const database = client.db("userDB");
-    const usersCollection = database.collection("users");
-    const formsCollection = database.collection("forms");
-    const paymentCollection = database.collection("payment");
-    const maatwerkCollection = database.collection("maatwerk");
-    const customCollection = database.collection("custom");
-
     app.post('/users',async(req,res)=>{
         const user =req.body;
         console.log('New user',user);
@@ -187,14 +197,19 @@ async function run() {
   })
 
 
-    app.post('/payment',async(req,res)=>{
-        const payment = req.body;
-        console.log(payment);
-        const result =await paymentCollection.insertOne(payment);
-        res.send(result);
+    //app.post('/payment',async(req,res)=>{
+      //  const payment = req.body;
+        //console.log(payment);
+       // const result =await paymentCollection.insertOne(payment);
+       // res.send(result);
+   // })
+
+    app.get('/payment',async(req,res)=>{
+      // Fetch all payments from the collection
+      const result =await paymentCollection.find().toArray();
+      console.log(result);
+      res.send(result);
     })
-
-
     
     app.post('/maatwerk',async(req,res)=>{
         const maatwerk = req.body;
@@ -250,4 +265,7 @@ run().catch(console.dir);
 
 // Start server
 const PORT = process.env.PORT || 5550;
+app.get('/',(req,res)=>{
+    res.send('Younitech server is running');
+});
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
